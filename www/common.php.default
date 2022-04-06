@@ -1,0 +1,78 @@
+<?
+
+// $Id: common.php.default,v 1.3 2006/03/27 15:55:53 mdg Exp $
+
+// set this to one to use http authentication instead of form-based (default: 0);
+$HTTP_AUTH = 0;
+
+// this is the level required for the user to access the admin.php functions (default: 100)
+$AUTH_ADMIN_REQ = 100;
+
+// this is the level required to do admin level user administration (default: 200)
+$AUTH_USER_ADMIN_REQ = 200;
+
+/*** Loot Determination Mode (default: 1)
+ * Options for this variable:
+ * 1 - DKP Economy: Items have DKP costs that are deducted from a raider's available DKP
+ * 2 - Q-based: Raiders bid value calculated by this formula -- no DKP is ever "spent":
+ * 	(adjusted lifetime dkp) / (count(items_won) + 1 + item_adjustments)
+***/
+
+$LD_MODE = 1;
+
+
+/*** END OF CONFIGURATION SECTION ***/
+
+
+$dbconn = pg_connect("host=localhost dbname=dkp user=mdg")
+   or die('Could not connect: ' . pg_last_error());
+
+
+// Session Management and Authentication
+session_start();
+
+// logging out
+if (isset($_POST['logout'])) {
+	unset($_SESSION['uid']);
+	unset($_SESSION['fullname']);
+	unset($_SESSION['auth']);
+	session_destroy();
+	header("Location:index.php");
+}
+
+// existing session already?
+
+$authenticate = 0;
+
+if (! isset($_SESSION['uid'])) {
+	// http auth attempt?
+	if (isset($_SERVER['PHP_AUTH_USER'])) {
+		$user = $_SERVER['PHP_AUTH_USER'];
+		$pass = $_SERVER['PHP_AUTH_PW'];
+		$authenticate = 1;
+	// form based auth attempt?
+	} else if (isset($_POST['form_auth'])) {
+		$user = $_POST['auth_user'];
+		$pass = $_POST['auth_pass'];
+		$authenticate = 1;
+	}
+
+	// authenticate login info
+	if ($authenticate) {
+		$query = "select id, admin from users where name = '$user' and password = '$pass'";
+		$result = pg_query($query) or die('Query failed: ' . pg_last_error());
+		if (pg_num_rows($result) == 0) {
+			echo "Authentication Failed";
+			exit;
+		} else {
+			$line = pg_fetch_array($result, null, PGSQL_ASSOC);
+			$_SESSION['uid'] = array_shift($line);
+			$admin = array_shift($line);
+			if ($admin > 0) {
+				$_SESSION['auth'] = $admin;
+			}
+			$_SESSION['name'] = $user;
+		}
+	}
+}
+?>

@@ -1,0 +1,22 @@
+If you have a full backup of another instance, just restore that and don't worry about anything in this directory
+
+
+
+To set up a new instance of the system, the SQL files must be executed in this order:
+
+dkpschema.sql
+dkpconstraints.sql
+initialize_lookup_tables.sql
+
+
+
+If you have a data-only dump of another instance that you are restoring, then do this:
+
+dkpschema.sql
+<import data file>
+dkpconstraints.sql
+
+Do not run initialize_lookup_tables.sql when restoring data from another instance
+
+
+
